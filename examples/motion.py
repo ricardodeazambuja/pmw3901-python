@@ -17,7 +17,7 @@ parser.add_argument('--spi-slot', type=str,
 
 args = parser.parse_args()
 
-flo = PMW3901(spi_port=0, spi_cs=1, spi_cs_gpio=BG_CS_FRONT_BCM if args.spi_slot == 'front' else BG_CS_BACK_BCM, secret_sauce=4)
+flo = PMW3901(spi_port=0, spi_cs=1, spi_cs_gpio=BG_CS_FRONT_BCM if args.spi_slot == 'front' else BG_CS_BACK_BCM, secret_sauce=3)
 flo.set_rotation(args.rotation)
 
 tx = 0
@@ -27,11 +27,14 @@ try:
     while True:
         try:
             x, y, q = flo.get_motion_with_quality()
+            last_sample = time.time()
         except RuntimeError:
             continue
         tx += x
         ty += y
         print("Relative: x {:03d} y {:03d} | Absolute: x {:03d} y {:03d} | Quality: {}".format(x,y,tx,ty,q))
-        time.sleep(0.005)
+        dt = time.time()-last_sample
+        if dt < flo.SAMPLE_INTERVAL:
+            time.sleep(flo.SAMPLE_INTERVAL-dt)
 except KeyboardInterrupt:
     pass

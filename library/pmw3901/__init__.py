@@ -131,13 +131,12 @@ class PMW3901():
              shutter_upper,
              shutter_lower) = struct.unpack("<BBBhhBBBBBB", bytearray(data))
 
-            #if not (shutter_upper == 0x1f):
-            print(struct.unpack("<BBBhhBBBBBB", bytearray(data)))
-            shutter = (shutter_upper << 8) | shutter_lower
-            print(shutter, shutter >= 0x1FF0)
+            # print("_:{}, dr:{}, obs:{}, x:{}, y:{}, q:{}, rs:{}, rmax:{}, rmin:{}, su:{}, sl:{}".format(_, dr, obs, x, y, quality, raw_sum, raw_max, raw_min, shutter_upper, shutter_lower))
+            # realshutter = shutter_upper | (shutter_lower << 8)
+            # print(realshutter, realshutter >= 0x1FF0)
+            # shutter = (shutter_upper << 8) | shutter_lower
+            # print(shutter, shutter >= 0x1FF0)
             return x, y, quality
-
-            time.sleep(self.SAMPLE_INTERVAL)
 
         raise RuntimeError("Timed out waiting for motion data.")
 
