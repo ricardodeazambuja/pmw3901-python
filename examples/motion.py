@@ -23,11 +23,12 @@ flo.set_rotation(args.rotation)
 tx = 0
 ty = 0
 
+last_sample = time.time()
+
 try:
     while True:
         try:
             x, y, q = flo.get_motion_with_quality()
-            last_sample = time.time()
         except RuntimeError:
             continue
         tx += x
@@ -36,5 +37,7 @@ try:
         dt = time.time()-last_sample
         if dt < flo.SAMPLE_INTERVAL:
             time.sleep(flo.SAMPLE_INTERVAL-dt)
+
+        last_sample = time.time()
 except KeyboardInterrupt:
     pass
