@@ -17,7 +17,9 @@ parser.add_argument('--spi-slot', type=str,
 
 args = parser.parse_args()
 
-flo = PMW3901(spi_port=0, spi_cs=1, spi_cs_gpio=BG_CS_FRONT_BCM if args.spi_slot == 'front' else BG_CS_BACK_BCM, secret_sauce=3)
+# spi_port=1, spi_cs=2, spi_cs_gpio=16 (pin 36) => compatible with the hat
+# Using /boot/config.txt and dtoverlay=spi1-3cs
+flo = PMW3901(spi_port=1, spi_cs=2, spi_cs_gpio=16, secret_sauce=3)
 flo.set_rotation(args.rotation)
 
 last_sample = time.time()
