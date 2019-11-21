@@ -1,5 +1,6 @@
 import time
 import struct
+from collections import namedtuple
 import spidev
 import RPi.GPIO as GPIO
 
@@ -108,6 +109,32 @@ class PMW3901():
             value |= 0b00100000
         self._write(REG_ORIENTATION, value)
 
+
+    def get_full_motion_data(self):
+        """Get ALL motion data from PMW3901 using burst read.
+
+        Reads 12 bytes sequentially from the PMW3901 and validates
+        motion data against the SQUAL and Shutter_Upper values.
+
+        Returns a dictionary with dr, obs, dx, dy, 
+                                  quality, raw_sum, raw_max, raw_min, 
+                                  shutter_upper and shutter_lower.
+        For more details see:
+        https://wiki.bitcraze.io/_media/projects:crazyflie2:expansionboards:pot0189-pmw3901mb-txqt-ds-r1.00-200317_20170331160807_public.pdf
+
+        """
+        fullmotion_keys = ('dr', 'obs', 'dx', 'dy', 'quality',
+                           'raw_sum', 'raw_max', 'raw_min',
+                           'shutter_upper', 'shutter_lower')
+
+        GPIO.output(self.spi_cs_gpio, 0)
+        data = self.spi_dev.xfer2([REG_MOTION_BURST] + [0 for x in range(12)])
+        GPIO.output(self.spi_cs_gpio, 1)
+        fullmotion_values = struct.unpack("<BBBhhBBBBBB", bytearray(data))
+
+        return dict(zip(fullmotion_keys, fullmotion_values[1:]))
+
+
     def get_motion_with_quality(self, timeout=5):
         """Get motion data from PMW3901 using burst read.
 
@@ -115,7 +142,7 @@ class PMW3901():
         motion data against the SQUAL and Shutter_Upper values.
 
         Returns Delta X and Delta Y indicating 2d flow direction
-        and magnitude.
+        and magnitude and quality.
 
         :param timeout: Timeout in seconds
 
@@ -126,17 +153,15 @@ class PMW3901():
             data = self.spi_dev.xfer2([REG_MOTION_BURST] + [0 for x in range(12)])
             GPIO.output(self.spi_cs_gpio, 1)
             (_, dr, obs,
-             x, y, quality,
+             dx, dy, quality,
              raw_sum, raw_max, raw_min,
              shutter_upper,
              shutter_lower) = struct.unpack("<BBBhhBBBBBB", bytearray(data))
 
-            # print("_:{}, dr:{}, obs:{}, x:{}, y:{}, q:{}, rs:{}, rmax:{}, rmin:{}, su:{}, sl:{}".format(_, dr, obs, x, y, quality, raw_sum, raw_max, raw_min, shutter_upper, shutter_lower))
-            # realshutter = shutter_upper | (shutter_lower << 8)
-            # print(realshutter, realshutter >= 0x1FF0)
-            # shutter = (shutter_upper << 8) | shutter_lower
-            # print(shutter, shutter >= 0x1FF0)
-            return x, y, quality
+            if dr & 0b10000000:
+                return dx, dy, quality
+            
+            time.sleep(0.001)
 
         raise RuntimeError("Timed out waiting for motion data.")
 
@@ -166,7 +191,7 @@ class PMW3901():
             if dr & 0b10000000 and not (quality < 0x19 and shutter_upper == 0x1f):
                 return x, y
 
-            time.sleep(0.01)
+            time.sleep(0.001)
 
         raise RuntimeError("Timed out waiting for motion data.")
 
