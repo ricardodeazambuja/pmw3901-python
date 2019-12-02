@@ -135,35 +135,28 @@ class PMW3901():
         return dict(zip(fullmotion_keys, fullmotion_values[1:]))
 
 
-    def get_motion_with_quality(self, timeout=5):
+    def get_motion_with_quality(self):
         """Get motion data from PMW3901 using burst read.
 
         Reads 12 bytes sequentially from the PMW3901 and validates
         motion data against the SQUAL and Shutter_Upper values.
 
-        Returns Delta X and Delta Y indicating 2d flow direction
-        and magnitude and quality.
-
-        :param timeout: Timeout in seconds
-
+        Returns Delta X and Delta Y indicating 2d flow direction,
+        magnitude and quality.
         """
-        t_start = time.time()
-        while time.time() - t_start < timeout:
-            GPIO.output(self.spi_cs_gpio, 0)
-            data = self.spi_dev.xfer2([REG_MOTION_BURST] + [0 for x in range(12)])
-            GPIO.output(self.spi_cs_gpio, 1)
-            (_, dr, obs,
-             dx, dy, quality,
-             raw_sum, raw_max, raw_min,
-             shutter_upper,
-             shutter_lower) = struct.unpack("<BBBhhBBBBBB", bytearray(data))
+        GPIO.output(self.spi_cs_gpio, 0)
+        data = self.spi_dev.xfer2([REG_MOTION_BURST] + [0 for x in range(12)])
+        GPIO.output(self.spi_cs_gpio, 1)
+        (_, dr, obs,
+            dx, dy, quality,
+            raw_sum, raw_max, raw_min,
+            shutter_upper,
+            shutter_lower) = struct.unpack("<BBBhhBBBBBB", bytearray(data))
 
-            if dr & 0b10000000:
-                return dx, dy, quality
-            
-            time.sleep(0.001)
-
-        raise RuntimeError("Timed out waiting for motion data.")
+        if dr & 0b10000000:
+            return dx, dy, quality
+        else:
+            return 0, 0, 0
 
     def get_motion(self, timeout=5):
         """Get motion data from PMW3901 using burst read.

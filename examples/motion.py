@@ -41,10 +41,7 @@ prev_dx = 0
 prev_dy = 0
 try:
     while True:
-        try:
-            dx, dy, q = flo.get_motion_with_quality()
-        except RuntimeError:
-            continue
+        dx, dy, q = flo.get_motion_with_quality()
 
         dt = time.time()-last_sample
 
